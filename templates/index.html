@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Convertisseur PDF → XLS</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <main class="card">
+      <h1>Convertisseur PDF → XLS</h1>
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="file">Choisir un fichier PDF :</label>
+        <input type="file" name="file" id="file" accept="application/pdf">
+        <button type="submit">Envoyer et convertir</button>
+      </form>
+
+      <section class="files">
+        <h2>Fichiers convertis</h2>
+        {% if files %}
+          <ul>
+            {% for f in files %}
+              <li><button class="file-btn" onclick="openPreview('{{ f }}')">{{ f[:50] }}{% if f|length > 50 %}...{% endif %}</button> <a href="/download/{{ f }}" class="download-link" title="Télécharger">⬇️</a></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Aucun fichier converti pour le moment.</p>
+        {% endif %}
+      </section>
+    </main>
+
+    <!-- Modale de prévisualisation -->
+    <div id="previewModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closePreview()">&times;</span>
+        <h2 id="previewTitle">Prévisualisation</h2>
+        <div id="sheetTabs"></div>
+        <div id="previewContainer"></div>
+      </div>
+    </div>
+
+    <script>
+      function openPreview(filename) {
+        const modal = document.getElementById('previewModal');
+        fetch(`/preview/${filename}`)
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('previewTitle').textContent = `Aperçu: ${data.filename}`;
+            const tabsHtml = Object.keys(data.sheets).map(sheet => 
+              `<button class="sheet-tab" onclick="showSheet('${sheet}')">${sheet}</button>`
+            ).join('');
+            document.getElementById('sheetTabs').innerHTML = tabsHtml;
+            const firstSheet = Object.keys(data.sheets)[0];
+            document.getElementById('previewContainer').innerHTML = data.sheets[firstSheet];
+            modal.style.display = 'block';
+            window.currentSheets = data.sheets;
+          })
+          .catch(err => alert('Erreur: ' + err));
+      }
+
+      function showSheet(sheetName) {
+        document.getElementById('previewContainer').innerHTML = window.currentSheets[sheetName];
+      }
+
+      function closePreview() {
+        document.getElementById('previewModal').style.display = 'none';
+      }
+
+      window.onclick = function(event) {
+        const modal = document.getElementById('previewModal');
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      }
+    </script>
+  </body>
+</html>
